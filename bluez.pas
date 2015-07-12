@@ -110,6 +110,8 @@ type
   type
     PFILE = ^FILE;
   
+  function c_close(fd: cint): cint; external name 'close';
+
   function bafprintf(stream: PFILE; format: pcchar; param1arrayof: array of const): cint; cdecl; external;
   function basprintf(str: pcchar; format: pcchar; param1arrayof: array of const): cint; cdecl; external;
   function basnprintf(str: pcchar; size: PtrUInt; format: pcchar; param1arrayof: array of const): cint; cdecl; external;

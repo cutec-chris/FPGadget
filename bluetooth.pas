@@ -12,7 +12,7 @@ uses
   Classes, SysUtils, Device;
 
 type
-  TBluetoothMacAddress = AnsiString;
+  TBluetoothMacAddress = String;
   TBluetoothType = (btUnknown, btClassic, btLE, btDual);
   TBluetoothAdapterState = (basOff, basOn, basDiscovering);
   TBluetoothDeviceState = (bdsNone, bdsPaired, bdsConnected);
@@ -44,32 +44,44 @@ type
 
   TBluetoothCustomDevice = class(TDevice)
   private
-    function GetAddress: TBluetoothMacAddress;
     function GetBluetoothType: TBluetoothType;
+  protected
+    FAddress: TBluetoothMacAddress;
+    FActualFound : Boolean;
+    FDeviceName: string;
   public
-    property Address: TBluetoothMacAddress read GetAddress;
+    property Address: TBluetoothMacAddress read FAddress;
     property BluetoothType: TBluetoothType read GetBluetoothType;
+    property DeviceName: string read FDeviceName;
   end;
 
   { TBluetoothDevice }
 
   TBluetoothDevice = class(TBluetoothCustomDevice)
   private
-    function GetClassDevice: Integer;
-    function GetClassDeviceMajor: Integer;
-    function GetPaired: Boolean;
     function GetServiceList: TBluetoothServiceList;
     function GetState: TBluetoothDeviceState;
+  protected
+    FMajor: Integer;
+    FMinor: Integer;
+    FPaired: Boolean;
   public
     function GetServices: TBluetoothServiceList;
     property LastServiceList: TBluetoothServiceList read GetServiceList;
-    property ClassDevice: Integer read GetClassDevice;
-    property ClassDeviceMajor: Integer read GetClassDeviceMajor;
-    property IsPaired: Boolean read GetPaired;
+    property ClassDevice: Integer read FMinor;
+    property ClassDeviceMajor: Integer read FMajor;
+    property IsPaired: Boolean read FPaired;
     property State: TBluetoothDeviceState read GetState;
   end;
 
-  TBluetoothDeviceList = class(TList);
+  { TBluetoothDeviceList }
+
+  TBluetoothDeviceList = class(TList)
+  private
+    function GetDevice(Index: Integer): TBluetoothDevice;
+  public
+    property Items[Index: Integer]: TBluetoothDevice read GetDevice; default;
+  end;
 
   TIdentifyUUIDEvent = function(Sender : TObject;const AUID : TGUID) : string of object;
   TDiscoveryEndEvent = function(Sender : TObject;const ADeviceList : TBluetoothDeviceList) : string of object;
@@ -112,6 +124,8 @@ type
     function GetCurrentAdapter: TBluetoothAdapter;
     function InternalGetBluetoothManager: TBluetoothManager;
   public
+    constructor Create;
+    destructor Destroy; override;
     property Current: TBluetoothManager read InternalGetBluetoothManager;
     class property SocketTimeout: Integer read FSocketTimeout write FSocketTimeout default 5000;
     class function GetKnownServiceName(const AServiceUUID: TGUID): string; static;
@@ -142,21 +156,6 @@ implementation
 {$endif}
 
 { TBluetoothDevice }
-
-function TBluetoothDevice.GetClassDevice: Integer;
-begin
-
-end;
-
-function TBluetoothDevice.GetClassDeviceMajor: Integer;
-begin
-
-end;
-
-function TBluetoothDevice.GetPaired: Boolean;
-begin
-
-end;
 
 function TBluetoothDevice.GetServiceList: TBluetoothServiceList;
 begin
@@ -202,12 +201,18 @@ begin
   Result := BluetoothManager;
 end;
 
-{ TBluetoothCustomDevice }
-
-function TBluetoothCustomDevice.GetAddress: TBluetoothMacAddress;
+constructor TBluetoothManager.Create;
 begin
-
+  FDiscoveredDevices := TBluetoothDeviceList.Create;
 end;
+
+destructor TBluetoothManager.Destroy;
+begin
+  FDiscoveredDevices.Destroy;
+  inherited Destroy;
+end;
+
+{ TBluetoothCustomDevice }
 
 function TBluetoothCustomDevice.GetBluetoothType: TBluetoothType;
 begin
